@@ -63,6 +63,10 @@ load('RN_2001_data.RData')
 head(protest_df$race_ethnicity)
 
 head(protest_df$household_income)
+
+head(protest_df$group_favorability_the_police)
+
+head(protest_df$discrimination_blacks)
 ```
 
 ## Question 1
@@ -75,6 +79,11 @@ As usual it is important to first examine the structure of the data. What are th
 R has a special 'date' class for storing and manipulating dates as seen below. Date variables can conveniently be logically compared and arithmetically manipulated. Using the day variable find out how many days the dataset spans. **First check using the code below that the day variable is of the class 'date'. Next subtract the latest day in the sample from the first day to calculate the timespan covered by the dataset. Hint: functions like max() and min() work for date variables too!**
 ```{r}
 class(protest_df$day)
+
+max(protest_df$day) - min(protest_df$day)
+
+
+
 ```
 
 
@@ -82,9 +91,15 @@ class(protest_df$day)
 On what date is the treatment said to have occurred? **Find the date for which the day_running variable is 0. Then modify the code below to add a variable to each row for whether or not the observation was before or after treatment.**
 
 ```{r, error=TRUE}
+
+protest_df %>% 
+  filter(day_running == 0) %>% 
+  select(day)
+
+
 #Change the object to be the date of the protest spread, remember to put it in quotes if you copy/paste!
 
-protest_df_bydate <- protest_df %>%  mutate(before = ifelse(day<as.Date("INSERT_TREATMENT_DAY_HERE"), 1,0))
+protest_df_bydate <- protest_df %>%  mutate(before = ifelse(day<as.Date("2020-05-28"), 1,0))
 ```
 
 
@@ -92,6 +107,41 @@ protest_df_bydate <- protest_df %>%  mutate(before = ifelse(day<as.Date("INSERT_
 
 ###Part a
 Compare the average for each outcome variable before and after the onset of the protests. Are the differences statistically significant? **Calculate the outcome variable means for before and after treatment. Conduct a test as to whether the differences in means are statistically significant. Hint: you can use either the t.test() function or difference_in_means() from the estimatr package**
+
+
+```{r, q3}
+
+#avg before day 0
+
+protest_df_bydate %>%
+  filter(before == 1) %>% 
+  summarise(mean(group_favorability_the_police, na.rm = TRUE))
+
+protest_df_bydate %>%
+  filter(before == 1) %>% 
+  summarise(mean(discrimination_blacks, na.rm = TRUE))
+
+#avg after day 0
+
+protest_df_bydate %>%
+  filter(before == 0) %>% 
+  summarise(mean(group_favorability_the_police, na.rm = TRUE))
+
+protest_df_bydate %>%
+  filter(before == 0) %>% 
+  summarise(mean(discrimination_blacks, na.rm = TRUE))
+
+#diff in means
+
+
+difference_in_means(group_favorability_the_police ~ before, data = protest_df_bydate)
+
+difference_in_means(discrimination_blacks ~ before, data = protest_df_bydate)
+
+
+```
+
+
 
 ###Part b
 It might be that the period before and after the treatment was different in ways in addition to the onset of the protests. Use the same procedure as above to check for differences between two means of a survey response measuring favorability towards a group besides the police. **Calculate the means from before and after the treatment and conduct a test of statistical significance of the difference for another measure of group favorability that was recorded in the survey (e.g. evangelicals, Jews, socialists, or whites). Is there also a substantive or statistically significant difference on that variable? Should that change our confidence in attributing the opinion changes found in part a to the George Floyd protests?**
