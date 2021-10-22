@@ -16,6 +16,8 @@ library(tidyverse)
 library(estimatr)
 library(haven)
 library(stargazer)
+library(labelled)
+library(cowplot)
 ```
 
 In this Data Exploration assignment we will explore Reny and Newman's (2021) finding that opinions towards the police and about the level of discrimination faced by Black Americans were impacted by the spread of protests in the wake of the killing of George Floyd. You will recreate, present, and assess those claims as well as creating your own regression models to test which attitudes change and when.
@@ -146,14 +148,65 @@ difference_in_means(discrimination_blacks ~ before, data = protest_df_bydate)
 ###Part b
 It might be that the period before and after the treatment was different in ways in addition to the onset of the protests. Use the same procedure as above to check for differences between two means of a survey response measuring favorability towards a group besides the police. **Calculate the means from before and after the treatment and conduct a test of statistical significance of the difference for another measure of group favorability that was recorded in the survey (e.g. evangelicals, Jews, socialists, or whites). Is there also a substantive or statistically significant difference on that variable? Should that change our confidence in attributing the opinion changes found in part a to the George Floyd protests?**
 
+
+```{r, q3 b}
+
+difference_in_means(group_favorability_jews ~ before, data = protest_df_bydate)
+
+difference_in_means(group_favorability_socialists ~ before, data = protest_df_bydate)
+
+difference_in_means(group_favorability_evangelicals ~ before, data = protest_df_bydate)
+
+
+
+
+
+
+
+```
+
+
 ## Question 4
 
 ###Part a
 In order to create figures similar to the panels in Figure 2 in Reny and Newman (2021) we must first manipulate the data to be more usable. If we intend to graph the average of each outcome variable for each day, on what variable should we group the data using group_by? **Create a new object that is the data split out by the appropriate group and producing the average for each of the two outcome variables for each day. Also be sure to preserve an indicator for whether the observations are from before or after the spread of the protests.** 
 
 
+```{r, q4}
+
+outcome_avg_byday <- protest_df_bydate %>% 
+  group_by(day_running) %>% 
+  mutate(avg_favpolice_byday = mean(group_favorability_the_police, na.rm = TRUE),
+         avg_discblack_byday = mean(discrimination_blacks, na.rm = TRUE))
+
+
+```
+
+
+
 ###Part b
 Graph the results for the entire sample. **Graph the results for the entire sample for both outcome variables by day. Include a vertical line demarcating when the protests started to spread. Does there appear to be a shift in the outcome variables from before to after the protests began to spread?**
+
+```{r, q4 b}
+#police graph
+outcome_avg_byday %>% 
+  ggplot(aes(x = day_running, y = avg_favpolice_byday, fill = as.factor(before))) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(method =  "lm", se = FALSE) +
+  theme(legend.position = "none")
+
+#disc black graph
+outcome_avg_byday %>% 
+  ggplot(aes(x = day_running, y = avg_discblack_byday, fill = as.factor(before))) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(method =  "lm", se = FALSE) +
+  theme(legend.position = "none")
+
+```
+
+
 
 ###Part c
 It might be useful to more clearly illustrate the differences in the trend lines before and after the protests began. **Modify the code below to include a separate line of best fit for before and after the protests began. Does the trend line align with your previous reading of the graph? Remember to add a vertical line demarcating for the onset of treatment.**
@@ -176,8 +229,181 @@ ggplot(data=mtcars, aes(x=hp, y = mpg, shape=as.factor(cyl))) +
 ###Part a 
 The attitudes in question are no doubt highly influenced by the respondent's race and ethnicity. How do the graphs from question 4 differ for white and Black respondents. **Subset the data to include only white respondents and recreate the graphs from part c of question 4. Do the same with the data from only Black respondents. How do these differ from each other? Hint: Be careful when subsetting white responses to not also include Hispanic responses. ** 
 
+
+```{r, q5}
+
+protest_df_bydate <- protest_df_bydate %>% 
+  
+  #change race_ethnicity and hispanic to factors
+
+  mutate(race_factor = to_factor(race_ethnicity, levels = "values"),
+         hispanic_factor = to_factor(hispanic, levels = "values"))
+  
+  #filter for whites only
+  
+white <-  protest_df_bydate %>% 
+  filter(race_factor == 1 & hispanic_factor == 1) %>% 
+  
+  group_by(day_running) %>% 
+  mutate(avg_favpolice_byday = mean(group_favorability_the_police, na.rm = TRUE),
+         avg_discblack_byday = mean(discrimination_blacks, na.rm = TRUE))
+
+
+#graph for white only
+
+p1_white <- white %>% 
+  ggplot(aes(x = day_running, y = avg_discblack_byday, fill = as.factor(before))) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(method =  "lm", se = FALSE) +
+  theme(legend.position = "none") +
+  labs(title = "Perception of Discrimination\n of Black People",
+       y = "Mean Discrimination Score (by day)")
+
+p2_white <- white %>% 
+  ggplot(aes(x = day_running, y = avg_favpolice_byday, fill = as.factor(before))) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(method =  "lm", se = FALSE) +
+  theme(legend.position = "none") +
+  labs(title = "Police Favorability",
+       y = "Mean Police Favorability Score (by day)")
+
+
+plot_row1 <- plot_grid(p1_white, p2_white)
+
+title1 <- ggdraw() + 
+  draw_label(
+    "Main Outcome Variables Filtered for White Respondents",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) +
+  theme(
+    # add margin on the left of the drawing canvas,
+    # so title is aligned with left edge of first plot
+    plot.margin = margin(0, 0, 0, 7)
+  )
+
+plot_grid(
+  title1, plot_row1,
+  ncol = 1,
+  # rel_heights values control vertical title margins
+  rel_heights = c(0.1, 1))
+
+```
+
+
+
+
+```{r, q5}
+#filter for black respondents
+
+
+black <- protest_df_bydate %>% 
+  filter(race_factor == 2) %>% 
+  group_by(day_running) %>% 
+  mutate(avg_favpolice_byday = mean(group_favorability_the_police, na.rm = TRUE),
+         avg_discblack_byday = mean(discrimination_blacks, na.rm = TRUE))
+
+
+#plots
+
+p1_black <- black %>% 
+  ggplot(aes(x = day_running, y = avg_discblack_byday, fill = as.factor(before))) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(method =  "lm", se = FALSE) +
+  theme(legend.position = "none") +
+  labs(title = "Perception of Discrimination\n of Black People",
+       y = "Mean Discrimination Score (by day)")
+
+
+p2_black <- black %>% 
+  ggplot(aes(x = day_running, y = avg_favpolice_byday, fill = as.factor(before))) +
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(method =  "lm", se = FALSE) +
+  theme(legend.position = "none") +
+  labs(title = "Police Favorability",
+       y = "Mean Police Favorability Score (by day)")
+
+#plot grid
+
+plot_row2 <- plot_grid(p1_black, p2_black)
+
+title2 <- ggdraw() + 
+  draw_label(
+    "Main Outcome Variables Filtered for Black Respondents",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) +
+  theme(
+    plot.margin = margin(0, 0, 0, 7)
+  )
+
+plot_grid(
+  title2, plot_row2,
+  ncol = 1,
+  rel_heights = c(0.1, 1))
+
+
+```
+
+
+
 ###Part b
 As we have learned partisanship heavily influences how people take in and process new information. **Split the sample into Democrats, Republicans and independents and use them to produce the same graphs as part a (either all in the same figure or separate). Compare both the level and the trends for each party affiliation. What could this imply about how partisanship affects processing?**
+
+
+```{r, q5 part b}
+
+party <- protest_df_bydate %>% 
+  #clean pid
+  filter(pid7 <= 7) %>% 
+  
+  
+#create party variables
+  mutate(party_id = 
+           case_when(
+             pid7 <= 3 ~ "Democrat",
+             pid7 >= 5 ~ "Republican",
+             pid7 == 4 ~ "Independent",
+             is.na(pid7) ~ "NA")) 
+  
+ party <- party %>%  
+  group_by(day_running, party_id) %>% 
+  mutate(avg_favpolice_byday = mean(group_favorability_the_police, na.rm = TRUE),
+         avg_discblack_byday = mean(discrimination_blacks, na.rm = TRUE))
+
+#plots
+ 
+ #disc blacks
+party %>% 
+  ggplot(aes(x = day_running, y = avg_discblack_byday, fill = as.factor(before))) +
+  geom_point() +
+  facet_wrap(~party_id) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(method =  "lm", se = FALSE) +
+  theme(legend.position = "none") +
+  labs(title = "Average Perception of Discrimination of Black People by Party")
+
+#police fav
+party %>% 
+  ggplot(aes(x = day_running, y = avg_favpolice_byday, fill = as.factor(before))) +
+  geom_point() +
+  facet_wrap(~party_id) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(method =  "lm", se = FALSE) +
+  theme(legend.position = "none") +
+  labs(title = "Average Favorability of Police Score by Party")
+
+ 
+
+
+```
+
 
 
 ##Question 6: 
