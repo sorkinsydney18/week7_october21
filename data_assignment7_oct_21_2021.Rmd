@@ -194,7 +194,8 @@ outcome_avg_byday %>%
   geom_point() +
   geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
   geom_smooth(method =  "lm", se = FALSE) +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  labs(title = "Average Police Favorability Score")
 
 #disc black graph
 outcome_avg_byday %>% 
@@ -202,7 +203,8 @@ outcome_avg_byday %>%
   geom_point() +
   geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
   geom_smooth(method =  "lm", se = FALSE) +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  labs(title = "Average Perpception of Discrimination Against Black People Score")
 
 ```
 
